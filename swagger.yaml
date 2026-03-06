@@ -24,15 +24,14 @@ tags:
   - name: Authentication
     description: Login and token management
   - name: Client Programs
-    description: Manage client advertising programs and their associated markets
+    description: Retrieve client programs and their associated markets
   - name: Trucks
-    description: Manage trucks and their issue history
+    description: Retrieve truck information
   - name: Program Schedule
-    description: Manage program schedule shifts and assignments
+    description: Retrieve program schedule shifts
   - name: Markets
     description: Retrieve available markets
 
-# ─── Security ────────────────────────────────────────────────────────────────
 components:
   securitySchemes:
     BearerAuth:
@@ -40,7 +39,6 @@ components:
       scheme: bearer
       bearerFormat: JWT
 
-  # ── Reusable Parameters ────────────────────────────────────────────────────
   parameters:
     ClientProgramUid:
       in: path
@@ -66,14 +64,6 @@ components:
         type: string
       description: Unique identifier of the driver
 
-    ScheduleId:
-      in: path
-      name: id
-      required: true
-      schema:
-        type: string
-      description: Unique identifier (programScheduleUid) of the schedule entry
-
     LimitParam:
       in: query
       name: limit
@@ -92,7 +82,6 @@ components:
         example: 0
       description: Number of records to skip (for pagination)
 
-  # ── Reusable Responses ─────────────────────────────────────────────────────
   responses:
     Unauthorized:
       description: Missing or invalid JWT token
@@ -106,12 +95,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
-    BadRequest:
-      description: Invalid request body or parameters
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
     ServerError:
       description: Internal server error
       content:
@@ -119,16 +102,7 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
 
-  # ── Schemas ────────────────────────────────────────────────────────────────
   schemas:
-
-    SuccessResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-
     ErrorResponse:
       type: object
       properties:
@@ -150,7 +124,6 @@ components:
           example: 42
           description: Total number of records (before pagination)
 
-    # ── Market ──────────────────────────────────────────────────────────────
     Market:
       type: object
       properties:
@@ -164,7 +137,6 @@ components:
           type: string
           example: "America/New_York"
 
-    # ── Client Program ───────────────────────────────────────────────────────
     ClientProgramMarket:
       type: object
       properties:
@@ -219,73 +191,6 @@ components:
           type: object
           description: Aggregated metrics for the program (miles, impressions, etc.)
 
-    ClientProgramCreateBody:
-      type: object
-      required: [clientUid, programName, startDate, endDate, markets]
-      properties:
-        clientUid:
-          type: string
-          example: "cl-001"
-        programName:
-          type: string
-          example: "Summer Campaign 2024"
-        startDate:
-          type: string
-          format: date
-          example: "2024-06-01"
-        endDate:
-          type: string
-          format: date
-          example: "2024-08-31"
-        markets:
-          type: array
-          description: List of markets to associate with this program
-          items:
-            type: object
-            properties:
-              market:
-                type: string
-                example: "New York"
-              marketTimeZone:
-                type: string
-                example: "America/New_York"
-
-    ClientProgramUpdateBody:
-      type: object
-      required: [clientProgramUid]
-      properties:
-        clientProgramUid:
-          type: string
-          example: "cp-001"
-        programName:
-          type: string
-          example: "Updated Campaign Name"
-        startDate:
-          type: string
-          format: date
-          example: "2024-06-01"
-        endDate:
-          type: string
-          format: date
-          example: "2024-09-30"
-        deletedMarkets:
-          type: array
-          description: UIDs of markets to remove
-          items:
-            type: string
-          example: ["cpm-002", "cpm-003"]
-        createdMarkets:
-          type: array
-          description: New markets to add
-          items:
-            $ref: "#/components/schemas/ClientProgramMarket"
-        updatedMarkets:
-          type: array
-          description: Existing markets to update
-          items:
-            $ref: "#/components/schemas/ClientProgramMarket"
-
-    # ── Truck ────────────────────────────────────────────────────────────────
     Issue:
       type: object
       properties:
@@ -294,8 +199,8 @@ components:
           example: "iss-001"
         issueType:
           type: string
-          example: "truck"
           enum: [truck, generator, computer, ledScreens]
+          example: "truck"
         issue:
           type: string
           example: "Engine warning light on"
@@ -357,55 +262,6 @@ components:
           items:
             $ref: "#/components/schemas/Issue"
 
-    TruckCreateBody:
-      type: object
-      required: [licensePlate, truckNumber, macAddress]
-      properties:
-        truckNumber:
-          type: string
-          example: "T-42"
-        licensePlate:
-          type: string
-          example: "ABC-1234"
-          description: Used to look up the vehicle in Samsara. Must match a valid Samsara record.
-        macAddress:
-          type: string
-          example: "AA:BB:CC:DD:EE:FF"
-
-    TruckUpdateBody:
-      type: object
-      required: [truckUid]
-      properties:
-        truckUid:
-          type: string
-          example: "trk-001"
-        truckNumber:
-          type: string
-          example: "T-42"
-        licensePlate:
-          type: string
-          example: "XYZ-5678"
-          description: If changed, the new plate must match a valid Samsara record.
-        macAddress:
-          type: string
-          example: "AA:BB:CC:DD:EE:FF"
-        resolvedIssueUids:
-          type: array
-          description: Issue UIDs to mark as resolved
-          items:
-            type: string
-          example: ["iss-001", "iss-002"]
-
-    NoMovementBody:
-      type: object
-      required: [dailyScheduleUid]
-      properties:
-        dailyScheduleUid:
-          type: string
-          example: "ds-001"
-          description: Triggers a no-movement alert email to the fleet manager for the associated shift.
-
-    # ── Program Schedule ─────────────────────────────────────────────────────
     ProgramScheduleShift:
       type: object
       properties:
@@ -421,21 +277,12 @@ components:
         clientProgramMarketUid:
           type: string
           example: "cpm-001"
-        clientArtworkSetUid:
-          type: string
-          example: "art-001"
-        clientGpsAddressSetUid:
-          type: string
-          example: "gps-001"
         truckUid:
           type: string
           example: "trk-001"
         driverUid:
           type: string
           example: "drv-001"
-        shiftTypeUid:
-          type: string
-          example: "sht-001"
         startTime:
           type: string
           format: date-time
@@ -450,222 +297,10 @@ components:
         notes:
           type: string
           example: "Park near main entrance"
-        shiftStartedTime:
-          type: string
-          format: date-time
         hasShiftCompleted:
           type: integer
           enum: [0, 1]
-        noProgramSelected:
-          type: integer
-          enum: [0, 1]
 
-    ProgramScheduleCreateBody:
-      type: object
-      required: [clientUid, clientProgramUid, clientProgramMarketUid, truckUid, driverUid, startTime, endTime, marketTimeZone]
-      properties:
-        clientUid:
-          type: string
-          example: "cl-001"
-        clientProgramUid:
-          type: string
-          example: "cp-001"
-        clientProgramMarketUid:
-          type: string
-          example: "cpm-001"
-        clientArtworkSetUid:
-          type: string
-          example: "art-001"
-        clientGpsAddressSetUid:
-          type: string
-          example: "gps-001"
-        truckUid:
-          type: string
-          example: "trk-001"
-        driverUid:
-          type: string
-          example: "drv-001"
-        shiftTypeUid:
-          type: string
-          example: "sht-001"
-        startTime:
-          type: string
-          example: "2024-06-01 08:00"
-          description: Local time in the market's timezone
-        endTime:
-          type: string
-          example: "2024-06-01 16:00"
-          description: Local time in the market's timezone
-        marketTimeZone:
-          type: string
-          example: "America/New_York"
-        notes:
-          type: string
-          example: "Park near main entrance"
-        monday:
-          type: boolean
-          example: true
-          description: Repeat on Mondays (repeat shift only)
-        tuesday:
-          type: boolean
-          example: false
-        wednesday:
-          type: boolean
-          example: true
-        thursday:
-          type: boolean
-          example: false
-        friday:
-          type: boolean
-          example: true
-        saturday:
-          type: boolean
-          example: false
-        sunday:
-          type: boolean
-          example: false
-        repeatEndDate:
-          type: string
-          format: date
-          example: "2024-08-31"
-          description: End date for repeating shifts
-        programEndDate:
-          type: string
-          format: date
-          example: "2024-08-31"
-
-    ProgramScheduleUpdateBody:
-      type: object
-      required: [programScheduleUid, marketTimeZone]
-      properties:
-        programScheduleUid:
-          type: string
-          example: "ps-001"
-        programScheduleDaysMappingUid:
-          type: string
-          example: "psdm-001"
-          description: Required if updating a repeating shift
-        isUpdateRepeats:
-          type: boolean
-          example: false
-          description: If true, updates all future occurrences of this repeating shift
-        marketTimeZone:
-          type: string
-          example: "America/New_York"
-        startTime:
-          type: string
-          example: "2024-06-01 09:00"
-        endTime:
-          type: string
-          example: "2024-06-01 17:00"
-        truckUid:
-          type: string
-          example: "trk-001"
-        driverUid:
-          type: string
-          example: "drv-001"
-        clientArtworkSetUid:
-          type: string
-          example: "art-001"
-        clientGpsAddressSetUid:
-          type: string
-          example: "gps-001"
-        shiftTypeUid:
-          type: string
-          example: "sht-001"
-        notes:
-          type: string
-          example: "Updated notes"
-
-    UpdateShiftStartedBody:
-      type: object
-      required: [programScheduleUid, programScheduleUids, shiftStartedTime]
-      properties:
-        programScheduleUid:
-          type: string
-          example: "ps-001"
-        programScheduleUids:
-          type: array
-          items:
-            type: string
-          example: ["ps-001", "ps-002"]
-          description: All schedule UIDs to mark as program-selected
-        shiftStartedTime:
-          type: string
-          format: date-time
-          example: "2024-06-01T08:05:00Z"
-        trackerUid:
-          type: string
-          example: "trk-uid-001"
-          description: Optional — links the shift start to a user tracker record
-
-    UpdateShiftStatusBody:
-      type: object
-      required: [programScheduleUid, endTime]
-      properties:
-        programScheduleUid:
-          type: string
-          example: "ps-001"
-        endTime:
-          type: string
-          format: date-time
-          example: "2024-06-01T16:00:00Z"
-
-    UploadScheduleBody:
-      type: object
-      required: [clientUid, clientProgramUid, markets, shifts]
-      properties:
-        clientUid:
-          type: string
-          example: "cl-001"
-        clientProgramUid:
-          type: string
-          example: "cp-001"
-        markets:
-          type: array
-          items:
-            type: object
-            properties:
-              market:
-                type: string
-                example: "New York"
-              marketTimeZone:
-                type: string
-                example: "America/New_York"
-        shifts:
-          type: array
-          items:
-            type: object
-            properties:
-              marketName:
-                type: string
-                example: "New York"
-              truckUid:
-                type: string
-                example: "trk-001"
-              driverUid:
-                type: string
-                example: "drv-001"
-              startTime:
-                type: string
-                example: "2024-06-01 08:00"
-              endTime:
-                type: string
-                example: "2024-06-01 16:00"
-              clientArtworkSetUid:
-                type: string
-                example: "art-001"
-              clientGpsAddressSetUid:
-                type: string
-                example: "gps-001"
-              shiftTypeUid:
-                type: string
-                example: "sht-001"
-              rowNum:
-                type: integer
-                example: 1
-
-# ─── Paths ───────────────────────────────────────────────────────────────────
 paths:
 
   # ── Authentication ──────────────────────────────────────────────────────────
@@ -707,7 +342,7 @@ paths:
                     type: string
                     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/Unauthorized"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
@@ -745,9 +380,7 @@ paths:
   /client-programs/run:
     get:
       summary: List all client programs
-      description: |
-        Returns a paginated list of client programs.
-        Supports filtering and sorting via query parameters.
+      description: Returns a paginated list of client programs.
       tags: [Client Programs]
       security:
         - BearerAuth: []
@@ -773,76 +406,11 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  /client-programs:
-    post:
-      summary: Create a client program
-      description: |
-        Creates a new client program along with its associated markets in a single transaction.
-      tags: [Client Programs]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ClientProgramCreateBody"
-      responses:
-        "200":
-          description: Client program created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    $ref: "#/components/schemas/ClientProgram"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-    put:
-      summary: Update a client program
-      description: |
-        Updates a client program and its markets in a single transaction.
-        You can create, update, and delete markets in one call.
-        
-        **Note:** If `startDate` or `endDate` are changed, validation is run against 
-        existing aggregated schedule data. An error is returned if shifts fall outside the new dates.
-      tags: [Client Programs]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ClientProgramUpdateBody"
-      responses:
-        "200":
-          description: Client program updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
   /client-programs/{clientProgramUid}:
     get:
       summary: Get a client program
       description: |
-        Returns full details of a client program including its associated markets 
+        Returns full details of a client program including its associated markets
         and aggregated metrics (miles driven, impressions, etc.).
       tags: [Client Programs]
       security:
@@ -869,32 +437,10 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-    delete:
-      summary: Delete a client program
-      description: Soft-deletes a client program by setting `isDeleted = 1`.
-      tags: [Client Programs]
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ClientProgramUid"
-      responses:
-        "200":
-          description: Client program deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
   /client-programs/markets/{clientProgramUid}:
     get:
       summary: Get markets for a client program
-      description: Returns the raw list of markets directly associated with a client program.
+      description: Returns the list of markets associated with a specific client program.
       tags: [Client Programs]
       security:
         - BearerAuth: []
@@ -926,7 +472,7 @@ paths:
   /trucks/run:
     get:
       summary: List all trucks
-      description: Returns a paginated list of trucks. Supports filtering and sorting via query parameters.
+      description: Returns a paginated list of trucks.
       tags: [Trucks]
       security:
         - BearerAuth: []
@@ -952,103 +498,12 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-  /trucks:
-    post:
-      summary: Create a truck
-      description: |
-        Adds a new truck to the system.
-        The `licensePlate` is validated against **Samsara** to retrieve the vehicle's ID.
-        An error is returned if the plate is not found in Samsara.
-      tags: [Trucks]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TruckCreateBody"
-      responses:
-        "200":
-          description: Truck created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    $ref: "#/components/schemas/Truck"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-    put:
-      summary: Update a truck
-      description: |
-        Updates a truck's details. Optionally resolves open issues and updates the license plate.
-        If `licensePlate` is changed, it is re-validated against **Samsara**.
-      tags: [Trucks]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TruckUpdateBody"
-      responses:
-        "200":
-          description: Truck updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /trucks/no-movement:
-    post:
-      summary: Report no movement
-      description: |
-        Logs a no-movement event for a shift and sends an alert email to the fleet manager.
-        The email includes the driver name, truck number, market, and shift hours.
-      tags: [Trucks]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NoMovementBody"
-      responses:
-        "200":
-          description: Alert sent successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
   /trucks/{truckUid}:
     get:
       summary: Get a truck
       description: |
-        Returns full details of a truck including its active issues and previous issue history 
-        grouped by type (truck, generator, computer, LED screens). 
+        Returns full details of a truck including its active issues and previous issue
+        history grouped by type (truck, generator, computer, LED screens).
         Active issues with media attachments include a temporary signed Azure URL.
       tags: [Trucks]
       security:
@@ -1075,32 +530,10 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
 
-    delete:
-      summary: Delete a truck
-      description: Soft-deletes a truck by setting `isDeleted = 1`.
-      tags: [Trucks]
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/TruckUid"
-      responses:
-        "200":
-          description: Truck deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
   # ── Program Schedule ────────────────────────────────────────────────────────
   /program-schedule/run:
     get:
-      summary: List all program schedules (grid view)
+      summary: List all program schedules
       description: Returns a paginated list of program schedules for grid display.
       tags: [Program Schedule]
       security:
@@ -1277,251 +710,6 @@ paths:
                     example: true
                   data:
                     $ref: "#/components/schemas/ProgramScheduleShift"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /program-schedule:
-    post:
-      summary: Create a shift
-      description: |
-        Creates one or more program schedule shifts.
-        If repeat day fields (`monday`, `tuesday`, etc.) are provided, 
-        all recurring shifts up to `repeatEndDate` are created automatically.
-        
-        **Validation:** Returns an error if the truck or driver is already assigned 
-        at the given time.
-      tags: [Program Schedule]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ProgramScheduleCreateBody"
-      responses:
-        "200":
-          description: Shift(s) created successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-    put:
-      summary: Update a shift (full replace)
-      description: |
-        Updates a program schedule shift. Set `isUpdateRepeats: true` to update all 
-        future occurrences of a repeating shift.
-
-        **Validation:** Returns an error if the truck or driver is already assigned 
-        at the updated time.
-      tags: [Program Schedule]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ProgramScheduleUpdateBody"
-      responses:
-        "200":
-          description: Shift updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /program-schedule/update:
-    put:
-      summary: Patch a shift (partial update)
-      description: Performs a direct field-level update on a schedule record by `programScheduleUid`.
-      tags: [Program Schedule]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [programScheduleUid]
-              properties:
-                programScheduleUid:
-                  type: string
-                  example: "ps-001"
-      responses:
-        "200":
-          description: Shift patched successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /program-schedule/update-shift-started:
-    put:
-      summary: Mark shift as started
-      description: |
-        Records the time a shift was started and clears `noProgramSelected` 
-        for a set of related schedule UIDs. Optionally updates a user tracker record.
-      tags: [Program Schedule]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateShiftStartedBody"
-      responses:
-        "200":
-          description: Shift marked as started
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /program-schedule/update-shift-status:
-    put:
-      summary: Update shift end status
-      description: |
-        Creates or confirms a `ProgramShift` record for the given schedule UID, 
-        recording the shift's end time.
-      tags: [Program Schedule]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateShiftStatusBody"
-      responses:
-        "200":
-          description: Shift status updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /program-schedule/upload:
-    post:
-      summary: Bulk upload shifts
-      description: |
-        Bulk-creates markets and shifts from an uploaded dataset (e.g. from a spreadsheet).
-
-        - Markets are created first; existing ones are matched by name.
-        - Each shift is validated for conflicts before insertion.
-        - If **any** shift has a conflict or is in the past, the response returns 
-          `hasError: true` with per-shift `statusMessage` fields — no shifts are saved.
-        - If all shifts are valid, they are saved in a single transaction.
-      tags: [Program Schedule]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UploadScheduleBody"
-      responses:
-        "200":
-          description: Upload processed (check `hasError` in response body)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  hasError:
-                    type: boolean
-                    example: false
-                    description: True if any shifts had validation errors — nothing was saved
-                  markets:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/ClientProgramMarket"
-                  shifts:
-                    type: array
-                    items:
-                      allOf:
-                        - $ref: "#/components/schemas/ProgramScheduleShift"
-                        - type: object
-                          properties:
-                            statusMessage:
-                              type: string
-                              example: "Truck/Driver is already assigned for the given shift time."
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  /program-schedule/{id}:
-    delete:
-      summary: Delete a shift
-      description: |
-        Deletes a program schedule shift by ID.
-
-        - If the shift is **today** and the driver is already clocked in, deletion is blocked.
-        - If the shift is part of a **repeating group** with only one remaining occurrence, 
-          the repeat mapping is also deleted.
-      tags: [Program Schedule]
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ScheduleId"
-      responses:
-        "200":
-          description: Shift deleted (or blocked with reason)
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      success:
-                        type: boolean
-                        example: false
-                      error:
-                        type: object
-                        properties:
-                          type:
-                            type: string
-                            example: "ClockedIn"
-                          message:
-                            type: string
-                            example: "Unable to Delete. Shift Already Clocked In"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
