@@ -7,7 +7,7 @@ info:
     All protected endpoints require a Bearer JWT token in the `Authorization` header.
 
     **How to authenticate:**
-    1. Call `POST /authentication` with your credentials.
+    1. Call `POST /api/v1/authentication/authenticate` with your AES-encrypted credentials.
     2. Copy the `token` from the response.
     3. Click **Authorize** and enter: `Bearer <your_token>`
   contact:
@@ -15,7 +15,7 @@ info:
     email: support@yourcompany.com
 
 servers:
-  - url: https://your-api-domain.com
+  - url: https://app.lime-media.com
     description: Production server
   - url: http://localhost:3000
     description: Local development server
@@ -29,8 +29,6 @@ tags:
     description: Retrieve truck information
   - name: Program Schedule
     description: Retrieve program schedule shifts
-  - name: Markets
-    description: Retrieve available markets
 
 components:
   securitySchemes:
@@ -123,19 +121,6 @@ components:
           type: integer
           example: 42
           description: Total number of records (before pagination)
-
-    Market:
-      type: object
-      properties:
-        marketUid:
-          type: string
-          example: "mkt-001"
-        market:
-          type: string
-          example: "New York"
-        marketTimeZone:
-          type: string
-          example: "America/New_York"
 
     ClientProgramMarket:
       type: object
@@ -304,11 +289,36 @@ components:
 paths:
 
   # ── Authentication ──────────────────────────────────────────────────────────
-  /authentication:
+  /api/v1/authentication/authenticate:
     post:
       summary: Log in and receive a JWT token
       description: |
-        Authenticate with your credentials.
+        Authenticate with AES-encrypted credentials via CryptoJS.
+
+        The `loginData` field must be a **CryptoJS AES-encrypted** JSON string. Encrypt the following payload before sending:
+
+        ```json
+        {
+          "emailAddress": "your@email.com",
+          "password": "yourpassword",
+          "applicationType": "web"
+        }
+        ```
+
+        **Encryption (Node.js / Postman pre-request script):**
+        ```js
+        const cryptoJS = require('crypto-js');
+        const plaintext = JSON.stringify({
+          emailAddress: "your@email.com",
+          password: "yourpassword",
+          applicationType: "web"
+        });
+        const encrypted = cryptoJS.AES.encrypt(plaintext, "<encryption_key>").toString();
+        pm.environment.set("loginData", encrypted);
+        ```
+
+        > **Note:** The encryption key (`defaultKey`) is sensitive and must be shared via a secure channel — do not include it in client code or version control.
+
         The returned `token` must be sent as `Authorization: Bearer <token>` on all protected endpoints.
       tags: [Authentication]
       requestBody:
@@ -317,16 +327,14 @@ paths:
           application/json:
             schema:
               type: object
-              required: [email, password]
+              required: [loginData]
               properties:
-                email:
+                loginData:
                   type: string
-                  format: email
-                  example: user@example.com
-                password:
-                  type: string
-                  format: password
-                  example: yourpassword
+                  description: >
+                    CryptoJS AES-encrypted JSON string containing `emailAddress`,
+                    `password`, and `applicationType`.
+                  example: "U2FsdGVkX1..."
       responses:
         "200":
           description: Login successful
@@ -343,34 +351,6 @@ paths:
                     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         "400":
           $ref: "#/components/responses/Unauthorized"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/ServerError"
-
-  # ── Markets ─────────────────────────────────────────────────────────────────
-  /markets:
-    get:
-      summary: Get all markets
-      description: Returns a list of all available markets.
-      tags: [Markets]
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: Markets retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Market"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
